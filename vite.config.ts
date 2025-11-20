@@ -3,7 +3,10 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
+  const REPO_NAME = '/solvit-new/';
   export default defineConfig({
+
+    base: REPO_NAME,
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
