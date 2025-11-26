@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { RegistrationDialog } from './RegistrationDialog';
-import { LoginDialog } from './LoginDialog';
 import { ProblemInput } from './ProblemInput';
 import { MediaFile, User, Problem } from '../data/mockData';
 import { Button } from './ui/button';
@@ -41,16 +40,9 @@ export function LandingPage({
   onProfileClick,
 }: LandingPageProps) {
   const [showRegistration, setShowRegistration] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  // ❌ SİLİNDİ: showLogin state-i artıq lazım deyil
 
   const t = getTranslation(language);
-
-  useEffect(() => {
-    // Auto-open registration dialog when landing page loads if not authenticated
-    if (!isAuthenticated) {
-      setShowRegistration(true);
-    }
-  }, [isAuthenticated]);
 
   const handleRegister = (name: string, email: string, password: string, role: string, customRole?: string) => {
     onRegister(name, email, password, role, customRole);
@@ -59,7 +51,20 @@ export function LandingPage({
 
   const handleLogin = (email: string, password: string) => {
     onLogin(email, password);
-    setShowLogin(false);
+    // ❌ SİLİNDİ: setShowLogin(false) artıq lazım deyil
+  };
+
+  // 🟢 YENİ FUNKSİYA 1: Göndər düyməsinə basanda açılan pop-up
+  const handleUnregisteredSubmit = () => {
+    setShowRegistration(true);
+  };
+  
+  // 🟢 YENİ FUNKSİYA 2: Header-dəki düymələri idarə edir
+  const handleAuthClick = (mode: 'register' | 'login') => {
+    setShowRegistration(true);
+    // Əlavə məntiq burada: Əgər dialoq açılanda avtomatik "Giriş" tabına keçid istəyiriksə, 
+    // bu məlumatı RegistrationDialog komponentinə ötürmək üçün əlavə state lazım olacaq.
+    // Lakin, sadəlik naminə, sadəcə dialoqu açırıq.
   };
 
   return (
@@ -78,6 +83,27 @@ export function LandingPage({
           </div>
           
           <div className="flex items-center gap-3">
+            
+            {/* 🟢 DÜZƏLİŞ 1: Header-ə Köçürülmüş Qeydiyyat/Giriş Düymələri */}
+            {!isAuthenticated && (
+              <>
+                <Button
+                  variant="ghost"
+                  className="rounded-full px-4 text-[#7D39B4] hover:bg-purple-50 transition-colors"
+                  onClick={() => handleAuthClick('register')}
+                >
+                  {t.registration}
+                </Button>
+                <Button
+                  className="bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full px-4 h-9 text-sm transition-all duration-200"
+                  onClick={() => handleAuthClick('login')}
+                >
+                  {t.loginButton}
+                </Button>
+              </>
+            )}
+            {/* 🟢 DÜZƏLİŞ 1 SONU */}
+
             {/* Language Selector */}
             {onLanguageChange && (
               <DropdownMenu>
@@ -143,31 +169,14 @@ export function LandingPage({
               problems={problems}
               onNavigateToDashboard={onNavigateToDashboard}
               language={language}
+              // 🟢 YENİ PROP: Göndərmə cəhdi ediləndə dialogu açmaq üçün
+              onUnregisteredSubmit={handleUnregisteredSubmit}
             />
           </div>
 
-          {/* Authentication Buttons */}
-          {!isAuthenticated && (
-            <div className="text-center space-y-4">
-              <p className="text-gray-600 mb-4 text-sm sm:text-base">
-                {t.registerToSubmit}
-              </p>
-              <div className="flex gap-3 sm:gap-4 justify-center flex-col sm:flex-row">
-                <button
-                  onClick={() => setShowRegistration(true)}
-                  className="bg-[#7D39B4] hover:bg-[#6B2F9E] text-white rounded-full px-8 sm:px-12 h-11 sm:h-12 text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  {t.register}
-                </button>
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="bg-white hover:bg-gray-50 text-[#7D39B4] border-2 border-[#7D39B4] rounded-full px-8 sm:px-12 h-11 sm:h-12 text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  {t.loginButton}
-                </button>
-              </div>
-            </div>
-          )}
+          {/* ❌ SİLİNDİ: Authentication Buttons bloku artıq yoxdur */}
+          {/* ❌ Əvvəlki kodda bu div bloku burada yerləşirdi */}
+          
         </div>
       </main>
 
@@ -177,17 +186,11 @@ export function LandingPage({
         open={showRegistration}
         onOpenChange={setShowRegistration}
         onRegister={handleRegister}
+        onLogin={handleLogin} // 🟢 DÜZƏLİŞ: Login funksiyası ötürülür
         language={language}
       />
       
-
-      {/* Login Dialog */}
-      <LoginDialog
-        open={showLogin}
-        onOpenChange={setShowLogin}
-        onLogin={handleLogin}
-        language={language}
-      />
+      {/* ❌ SİLİNDİ: Login Dialog artıq yoxdur */}
     </div>
   );
 }

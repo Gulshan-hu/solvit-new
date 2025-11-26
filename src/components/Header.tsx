@@ -14,9 +14,20 @@ interface HeaderProps {
   onProfileClick?: () => void;
   language: Language;
   onLanguageChange: (lang: Language) => void;
+  // 🟢 YENİ PROPLAR: Header-i LandingPage-dən fərqləndirmək və dialoqu açmaq üçün
+  isAuthenticated?: boolean;
+  onAuthClick?: (mode: 'register' | 'login') => void;
 }
 
-export function Header({ userName, onLogout, onProfileClick, language, onLanguageChange }: HeaderProps) {
+export function Header({ 
+  userName, 
+  onLogout, 
+  onProfileClick, 
+  language, 
+  onLanguageChange,
+  isAuthenticated, // 🟢 Yeni prop
+  onAuthClick, // 🟢 Yeni prop
+}: HeaderProps) {
   const t = getTranslation(language);
   
 return (
@@ -41,10 +52,33 @@ return (
 
       {/* Sağ tərəf */}
       <div className="flex items-center justify-end gap-3 sm:gap-4">
-        {/* İstifadəçi adı */}
-        <span className="text-gray-700 hidden md:inline text-sm">
-          {t.hello}, {userName}
-        </span>
+
+        {/* 🟢 DÜZƏLİŞ 1: Qeydiyyat/Giriş Düymələri - YALNIZ autentifikasiya yoxdursa və onAuthClick mövcuddursa göstər */}
+        {isAuthenticated === false && onAuthClick && (
+          <>
+            <Button
+              variant="ghost"
+              className="rounded-full px-4 text-[#7D39B4] hover:bg-purple-50 transition-colors"
+              onClick={() => onAuthClick('register')}
+            >
+              {t.registration}
+            </Button>
+            <Button
+              className="bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full px-4 h-9 text-sm transition-all duration-200"
+              onClick={() => onAuthClick('login')}
+            >
+              {t.loginButton}
+            </Button>
+          </>
+        )}
+        
+        {/* DÜZƏLİŞ 2: Yalnız autentifikasiya varsa istifadəçi adını göstər */}
+        {isAuthenticated && (
+            <span className="text-gray-700 hidden md:inline text-sm">
+                {t.hello}, {userName}
+            </span>
+        )}
+        
 
         {/* Dil seçimi */}
         <DropdownMenu>
@@ -70,28 +104,30 @@ return (
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Profil menyusu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full w-9 h-9 sm:w-10 sm:h-10 bg-[#7D39B4] hover:bg-[#6B2F9E] text-white"
-            >
-              <User className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onProfileClick && (
-              <DropdownMenuItem onClick={onProfileClick}>
-                {t.profile}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={onLogout}>
-              {t.logout}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Profil menyusu (YALNIZ autentifikasiya varsa göstər) */}
+        {isAuthenticated && (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full w-9 h-9 sm:w-10 sm:h-10 bg-[#7D39B4] hover:bg-[#6B2F9E] text-white"
+                    >
+                        <User className="w-5 h-5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {onProfileClick && (
+                    <DropdownMenuItem onClick={onProfileClick}>
+                        {t.profile}
+                    </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={onLogout}>
+                        {t.logout}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )}
       </div>
     </div>
   </header>

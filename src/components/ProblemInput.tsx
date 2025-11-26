@@ -37,6 +37,7 @@ interface ProblemInputProps {
   problems?: typeof mockProblems;
   onNavigateToDashboard?: () => void;
   language: Language;
+  onUnregisteredSubmit?: () => void;
 }
 
 export function ProblemInput({ 
@@ -47,7 +48,8 @@ export function ProblemInput({
   isLandingPage = false, 
   problems, 
   onNavigateToDashboard,
-  language 
+  language,
+  onUnregisteredSubmit
 }: ProblemInputProps) {
   
   // 🟢 DÜZGÜN VƏ YENİLƏNMİŞ STATE'LƏR
@@ -128,8 +130,16 @@ export function ProblemInput({
   };
   
   const handleSubmit = () => {
-    if (!text.trim() || !isRegistered) {
-      return;
+    // 🟢 DÜZƏLİŞ 1: Autentifikasiya yoxdursa, mətndən asılı olmayaraq pop-up-ı aç
+    if (!isRegistered && onUnregisteredSubmit) {
+        onUnregisteredSubmit();
+        return; 
+    }
+    
+    // 🟢 DÜZƏLİŞ 2: Yalnız autentifikasiya varsa və mətn boşdursa xəta ver
+    if (!text.trim()) {
+        toast.error(t.describeProblem);
+        return;
     }
     
     // 🟢 YENİ MƏNTİQ: Məsul şəxsi müəyyən etmək
@@ -218,7 +228,9 @@ export function ProblemInput({
                 <div>
                   <Button
                     onClick={handleSubmit}
-                    disabled={!text.trim() || !isRegistered}
+                    // 🟢 DÜZƏLİŞ 3: Qeydiyyatdan keçməyibsə, həmişə aktiv olsun ki, pop-up çıxsın.
+                    // Yalnız qeydiyyatdan keçibsə VƏ mətn boşdursa disabled olsun.
+                    disabled={isRegistered && !text.trim()} 
                     className="bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full px-10 h-11 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
                   >
                     {t.send}
