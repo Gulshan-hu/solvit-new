@@ -1,5 +1,5 @@
 {
-      "name": "SolvIT",
+      "name": "solvit-new",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
@@ -57,7 +57,9 @@
             "vite": "6.3.5"
       },
       "scripts": {
-            "dev": "vite",
-            "build": "vite build"
+    "dev": "vite",
+    "build": "tsc && vite build --outDir docs",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
       }
 }
