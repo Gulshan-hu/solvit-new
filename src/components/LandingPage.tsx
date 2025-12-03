@@ -24,6 +24,8 @@ interface LandingPageProps {
   language: Language;
   onLanguageChange?: (lang: Language) => void;
   onProfileClick?: () => void;
+  // 🟢 DÜZƏLİŞ 1: Yeni onLogoClick propunu əlavə et
+  onLogoClick: () => void; 
 }
 
 export function LandingPage({ 
@@ -38,33 +40,27 @@ export function LandingPage({
   language,
   onLanguageChange,
   onProfileClick,
+  onLogoClick, // 🟢 DÜZƏLİŞ 2: Propu funksiyaya əlavə et
 }: LandingPageProps) {
   const [showRegistration, setShowRegistration] = useState(false);
-  // ❌ SİLİNDİ: showLogin state-i artıq lazım deyil
 
   const t = getTranslation(language);
 
   const handleRegister = (name: string, email: string, password: string, role: string, customRole?: string) => {
     onRegister(name, email, password, role, customRole);
-    setShowRegistration(false); // Auto-close registration dialog
+    setShowRegistration(false);
   };
 
   const handleLogin = (email: string, password: string) => {
     onLogin(email, password);
-    // ❌ SİLİNDİ: setShowLogin(false) artıq lazım deyil
   };
 
-  // 🟢 YENİ FUNKSİYA 1: Göndər düyməsinə basanda açılan pop-up
   const handleUnregisteredSubmit = () => {
     setShowRegistration(true);
   };
   
-  // 🟢 YENİ FUNKSİYA 2: Header-dəki düymələri idarə edir
   const handleAuthClick = (mode: 'register' | 'login') => {
     setShowRegistration(true);
-    // Əlavə məntiq burada: Əgər dialoq açılanda avtomatik "Giriş" tabına keçid istəyiriksə, 
-    // bu məlumatı RegistrationDialog komponentinə ötürmək üçün əlavə state lazım olacaq.
-    // Lakin, sadəlik naminə, sadəcə dialoqu açırıq.
   };
 
   return (
@@ -74,7 +70,11 @@ export function LandingPage({
         <div className="w-full flex items-center justify-between px-4 sm:px-6 py-4">
 
           {/* Logo - aligned to left, responsive */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          {/* 🟢 DÜZƏLİŞ 3: Logoya onClick hadisəsini və cursor stilini əlavə et */}
+          <div 
+            className="flex items-center gap-3 flex-shrink-0 cursor-pointer"
+            onClick={onLogoClick}
+          >
             <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 sm:w-10 sm:h-10">
               <rect width="40" height="40" rx="10" fill="#7D39B4"/>
               <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" fill="white"/>
@@ -174,8 +174,6 @@ export function LandingPage({
             />
           </div>
 
-          {/* ❌ SİLİNDİ: Authentication Buttons bloku artıq yoxdur */}
-          {/* ❌ Əvvəlki kodda bu div bloku burada yerləşirdi */}
           
         </div>
       </main>
@@ -189,8 +187,6 @@ export function LandingPage({
         onLogin={handleLogin} // 🟢 DÜZƏLİŞ: Login funksiyası ötürülür
         language={language}
       />
-      
-      {/* ❌ SİLİNDİ: Login Dialog artıq yoxdur */}
     </div>
   );
 }

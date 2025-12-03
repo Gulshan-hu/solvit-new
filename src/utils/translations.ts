@@ -65,6 +65,8 @@ export const translations = {
     add: 'Əlavə et',
     addedAsResponsible: 'məsul şəxs kimi əlavə edildi.',
     notificationWillBeSent: 'Bildiriş bu ünvana göndəriləcək.',
+    searchUser: 'İstifadəçini axtar...',
+    noUserFound: 'İstifadəçi tapılmadı.',
     
     // Problem Status
     unsolved: 'Həll edilməyib',
@@ -89,6 +91,7 @@ export const translations = {
     
     // Priority
     priority: 'Prioritet',
+    privacy: 'Məxfilik',
     low: 'Aşağı',
     medium: 'Orta',
     high: 'Yüksək',
@@ -191,6 +194,8 @@ export const translations = {
     add: 'Добавить',
     addedAsResponsible: 'добавлен как ответственное лицо.',
     notificationWillBeSent: 'Уведомление будет отправлено на этот адрес.',
+    searchUser: 'Поиск пользователя...',
+    noUserFound: 'Пользователь не найден.',
     
     // Problem Status
     unsolved: 'Не решено',
@@ -215,6 +220,7 @@ export const translations = {
     
     // Priority
     priority: 'Приоритет',
+    privacy: 'Конфиденциальность',
     low: 'Низкий',
     medium: 'Средний',
     high: 'Высокий',
@@ -317,6 +323,8 @@ export const translations = {
     add: 'Add',
     addedAsResponsible: 'added as responsible person.',
     notificationWillBeSent: 'Notification will be sent to this address.',
+    searchUser: 'Search user...',
+    noUserFound: 'No user found.',
     
     // Problem Status
     unsolved: 'Unsolved',
@@ -341,6 +349,7 @@ export const translations = {
     
     // Priority
     priority: 'Priority',
+    privacy: 'Privacy',
     low: 'Low',
     medium: 'Medium',
     high: 'High',

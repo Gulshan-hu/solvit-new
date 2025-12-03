@@ -19,6 +19,9 @@ interface DashboardPageProps {
   onNavigateToProblem?: (problemId: string) => void;
   language: Language;
   onLanguageChange: (lang: Language) => void;
+  // 🟢 KRİTİK DÜZƏLİŞ 1: onProfileClick propunu interfeysə əlavə et
+  onProfileClick: () => void; 
+  onLogoClick: () => void;
 }
 
 export function DashboardPage({
@@ -33,6 +36,9 @@ export function DashboardPage({
   onNavigateToProblem,
   language,
   onLanguageChange,
+  onLogoClick,
+  // 🟢 KRİTİK DÜZƏLİŞ 2: onProfileClick propunu qəbul et
+  onProfileClick,
 }: DashboardPageProps) {
   const [filter, setFilter] = useState<'all' | 'my-problems' | 'problems-i-solved'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unsolved' | 'in-progress' | 'solved' | 'impossible'>('all');
@@ -90,6 +96,10 @@ export function DashboardPage({
     { value: 'problems-i-solved', label: t.problemsISolved },
   ];
 
+  // 🟢 DÜZƏLİŞ: ProfilePage artıq xarici prop vasitəsilə açıldığı üçün 
+  // bu hissəni silirik və ya ləğv edirik. Lakin, biz hələ də Header'ə 
+  // ProfilePage'i bağlamaq üçün bir onBack funksiyası ötürməliyik.
+
   if (showProfile) {
     return (
       <ProfilePage
@@ -108,9 +118,12 @@ export function DashboardPage({
       <Header 
         userName={user.name} 
         onLogout={onLogout} 
-        onProfileClick={() => setShowProfile(true)}
+        // 🟢 DÜZƏLİŞ: showProfile state-ini true edən funksiyanı ötürürük.
+        onProfileClick={() => setShowProfile(true)} 
         language={language}
         onLanguageChange={onLanguageChange}
+        isAuthenticated={true}
+        onLogoClick={onLogoClick}
       />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">

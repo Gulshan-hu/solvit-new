@@ -9,7 +9,7 @@ import {
   MediaFile,
   registeredUsers,
 } from "./data/mockData";
-import { toast, Toaster } from "sonner@2.0.3";
+import { toast, Toaster } from "sonner";
 import { getStoredLanguage, setStoredLanguage, Language } from "./utils/translations";
 import { getTranslation } from "./utils/translations";
 
@@ -197,6 +197,15 @@ function App() {
     );
     toast.success(t.statusUpdated);
   };
+  // 🟢 YENİ FƏNDƏSİ: Logoya basanda əsas səhifəyə qayıtmaq
+  const handleLogoClick = () => {
+    // 1. İstifadəçini Dashoard'dan LandingPage'ə yönləndir
+    setShowDashboard(false);
+    // 2. Autentifikasiya vəziyyətini saxla (əgər çıxış etmirsə)
+    // 3. Əlavə olaraq səhifəni yeniləmək üçün:
+    //    window.location.reload(); // Əgər mütləq səhifə yenilənməsi tələb olunursa, bu sətirdən istifadə edin.
+    // Lakin, biz state-ləri idarə etdiyimiz üçün yalnız setShowDashboard(false) kifayətdir.
+  };
 
   const handleSubmitSolution = (
     id: string,
@@ -269,6 +278,9 @@ function App() {
           onDeleteProblem={handleDeleteProblem}
           language={language}
           onLanguageChange={handleLanguageChange}
+          // 🟢 KRİTİK DÜZƏLİŞ: DashboardPage-də profil düyməsinin görünməsi üçün propu ötür.
+          onProfileClick={() => setShowDashboard(true)} 
+          onLogoClick={handleLogoClick}
           onNavigateToProblem={(problemId) => {
             // Scroll to problem on dashboard
             setTimeout(() => {
@@ -307,6 +319,7 @@ function App() {
           language={language}
           onLanguageChange={handleLanguageChange}
           onProfileClick={() => setShowDashboard(true)}
+          onLogoClick={handleLogoClick}
         />
       )}
       <Toaster position="top-right" />

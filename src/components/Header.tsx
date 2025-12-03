@@ -17,6 +17,8 @@ interface HeaderProps {
   // 🟢 YENİ PROPLAR: Header-i LandingPage-dən fərqləndirmək və dialoqu açmaq üçün
   isAuthenticated?: boolean;
   onAuthClick?: (mode: 'register' | 'login') => void;
+  // 🟢 DÜZƏLİŞ: Logoya basanda əsas səhifəyə qayıtmaq üçün funksiya
+  onLogoClick: () => void; // Logoya basıldığında ana səhifəyə qayıtmaq üçün əlavə edilir.
 }
 
 export function Header({ 
@@ -25,8 +27,10 @@ export function Header({
   onProfileClick, 
   language, 
   onLanguageChange,
-  isAuthenticated, // 🟢 Yeni prop
-  onAuthClick, // 🟢 Yeni prop
+  isAuthenticated, 
+  onAuthClick, 
+  // 🟢 DÜZƏLİŞ: Yeni propu qəbul et
+  onLogoClick,
 }: HeaderProps) {
   const t = getTranslation(language);
   
@@ -34,11 +38,14 @@ return (
   <header className="w-full bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
     <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4">
       
-      {/* Logo SVG */}
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <svg
-          width="40"
-          height="40"
+     {/* Logo SVG */}
+<div 
+  className="flex items-center gap-3 flex-shrink-0 cursor-pointer"
+  onClick={onLogoClick}
+>
+  <svg
+    width="40"
+    height="40"
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"

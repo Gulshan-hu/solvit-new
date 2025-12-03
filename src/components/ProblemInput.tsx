@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, X, Image as ImageIcon, Video, Mail } from 'lucide-react'; 
+// 🟢 DÜZƏLİŞ 1: Yeni ikonları import et
+import { Plus, X, Image as ImageIcon, Video, Mail, Check, ChevronsUpDown } from 'lucide-react'; 
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -11,7 +12,7 @@ import {
   SelectValue, 
   SelectLabel, 
   SelectSeparator,
-  SelectGroup // 🟢 SelectGroup əlavə olundu
+  SelectGroup 
 } from './ui/select';
 import { 
   AlertDialog, 
@@ -23,6 +24,10 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from './ui/alert-dialog';
+// 🟢 DÜZƏLİŞ 2: Command və Popover komponentlərini import et
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from './ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'; 
+
 import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { registeredUsers, mockProblems, User, MediaFile } from '../data/mockData';
@@ -37,7 +42,7 @@ interface ProblemInputProps {
   problems?: typeof mockProblems;
   onNavigateToDashboard?: () => void;
   language: Language;
-  onUnregisteredSubmit?: () => void;
+  onUnregisteredSubmit?: () => void; 
 }
 
 export function ProblemInput({ 
@@ -49,16 +54,17 @@ export function ProblemInput({
   problems, 
   onNavigateToDashboard,
   language,
-  onUnregisteredSubmit
+  onUnregisteredSubmit 
 }: ProblemInputProps) {
   
-  // 🟢 DÜZGÜN VƏ YENİLƏNMİŞ STATE'LƏR
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaFile[]>([]);
   
   const [selectedResponsiblePersonId, setSelectedResponsiblePersonId] = useState<string | 'new' | undefined>(undefined);
   const [newResponsibleEmail, setNewResponsibleEmail] = useState('');
   const [showAddResponsibleDialog, setShowAddResponsibleDialog] = useState(false);
+  // 🟢 DÜZƏLİŞ 3: Combobox üçün yeni state
+  const [isResponsibleSelectOpen, setIsResponsibleSelectOpen] = useState(false);
   
   const [similarProblems, setSimilarProblems] = useState<typeof mockProblems>([]);
   
@@ -71,14 +77,18 @@ export function ProblemInput({
 
   const t = getTranslation(language);
 
-  // Find similar problems based on keywords (Bənzər problemlər məntiqi saxlanılıb)
+  // 🟢 DÜZƏLİŞ 4: Axtarış üçün bütün məsul şəxslərin filtrlənmiş siyahısı
+  const internalResponsibleUsers = registeredUsers.filter(
+      u => u.role === 'it-department' || u.role === 'teacher' || u.role === 'other'
+  );
+
+  // Find similar problems based on keywords
   useEffect(() => {
     const problemList = problems || mockProblems;
     if (text.length > 5) {
       const coreKeywords = ['kompüter', 'monitor', 'proyektor', 'şəbəkə', 'printer', 'klaviatura', 'siçan', 'ekran'];
       const nonEssentialWords = ['işləmir', 'yoxdur', 'sınıb', 'tapılmadı', 'var', 'yoxdur', 'olmur', 'açılmır', 'bağlanmır'];
       const textLower = text.toLowerCase();
-      // Tagging silindiyi üçün bu sətir formal olaraq saxlanılır, lakin işlək tag yoxdur.
       const textWithoutTags = textLower.replace(/@[\wəüöğıçşƏÜÖĞIÇŞ]+/gi, ''); 
       const words = textWithoutTags.split(/\s+/).filter(word => 
         word.length > 3 && !nonEssentialWords.includes(word)
@@ -111,7 +121,7 @@ export function ProblemInput({
     const files = e.target.files;
     if (files) {
       const newMedia: MediaFile[] = [];
-      Array.from(files).forEach((file) => {
+      Array.from(files).forEach((file: File) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
@@ -130,27 +140,27 @@ export function ProblemInput({
   };
   
   const handleSubmit = () => {
-    // 🟢 DÜZƏLİŞ 1: Autentifikasiya yoxdursa, mətndən asılı olmayaraq pop-up-ı aç
+    // Autentifikasiya yoxdursa, mətndən asılı olmayaraq pop-up-ı aç
     if (!isRegistered && onUnregisteredSubmit) {
         onUnregisteredSubmit();
         return; 
     }
     
-    // 🟢 DÜZƏLİŞ 2: Yalnız autentifikasiya varsa və mətn boşdursa xəta ver
+    // Yalnız autentifikasiya varsa və mətn boşdursa xəta ver
     if (!text.trim()) {
         toast.error(t.describeProblem);
         return;
     }
     
-    // 🟢 YENİ MƏNTİQ: Məsul şəxsi müəyyən etmək
+    // Yerdə qalan göndərmə məntiqi
     let finalTaggedUsers: User[] = [];
     if (selectedResponsiblePersonId && selectedResponsiblePersonId !== 'new' && selectedResponsiblePersonId !== 'unregistered-user') {
-        const user = registeredUsers.find(u => u.id === selectedResponsiblePersonId);
+        // İndi seçilmiş istifadəçi daxili siyahımızdan tapılır
+        const user = internalResponsibleUsers.find(u => u.id === selectedResponsiblePersonId);
         if (user) {
             finalTaggedUsers.push(user);
         }
     } else if (newResponsibleEmail) {
-        // Yeni email ünvanı əlavə edilib (mock user kimi)
         finalTaggedUsers.push({
             id: 'unregistered-' + newResponsibleEmail,
             name: newResponsibleEmail,
@@ -161,7 +171,6 @@ export function ProblemInput({
         } as User);
     }
     
-    // Formu göndər
     onSubmit(
         text, 
         media, 
@@ -228,8 +237,7 @@ export function ProblemInput({
                 <div>
                   <Button
                     onClick={handleSubmit}
-                    // 🟢 DÜZƏLİŞ 3: Qeydiyyatdan keçməyibsə, həmişə aktiv olsun ki, pop-up çıxsın.
-                    // Yalnız qeydiyyatdan keçibsə VƏ mətn boşdursa disabled olsun.
+                    // Qeydiyyatdan keçməyibsə həmişə aktivdir.
                     disabled={isRegistered && !text.trim()} 
                     className="bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full px-10 h-11 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
                   >
@@ -237,11 +245,6 @@ export function ProblemInput({
                   </Button>
                 </div>
               </TooltipTrigger>
-              {!isRegistered && (
-                <TooltipContent>
-                  <p>{t.cannotSendWithoutRegistration}</p>
-                </TooltipContent>
-              )}
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -249,10 +252,14 @@ export function ProblemInput({
 
       {/* 🔹 Kateqoriyalar (inputun altına mərkəzdə) */}
       <div className="flex justify-center flex-wrap gap-3 mt-2">
+      
         {/* Prioritet */}
-        <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+        <Select 
+          value={priority} 
+          onValueChange={(v: any) => setPriority(v)}
+          >
           <SelectTrigger className="h-9 w-[110px] rounded-lg border-2 border-[#7D39B4] text-sm">
-            <SelectValue placeholder={t.filterByPriority} />
+            <SelectValue placeholder={t.priority} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="low">{t.low}</SelectItem>
@@ -262,59 +269,90 @@ export function ProblemInput({
           </SelectContent>
         </Select>
 
-        {/* Görünürlük */}
-        <Select value={visibility} onValueChange={(v: any) => setVisibility(v)}>
+        {/* Görünürlük (Məxfilik) */}
+        <Select 
+          value={visibility} 
+          onValueChange={(v: any) => setVisibility(v)}
+          >
           <SelectTrigger className="h-9 w-[110px] rounded-lg border-2 border-[#7D39B4] text-sm">
-            <SelectValue placeholder={t.filterByVisibility} />
+            <SelectValue placeholder={t.privacy} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="public">{t.public}</SelectItem>
             <SelectItem value="private">{t.private}</SelectItem>
           </SelectContent>
         </Select>
-        
-        {/* 🟢 YENİ: Məsul Şəxs Select'i */}
-        <Select
-          value={selectedResponsiblePersonId}
-          onValueChange={(v: string | 'new' | undefined) => {
-            if (v === 'new') {
-              setShowAddResponsibleDialog(true);
-            } else {
-              setSelectedResponsiblePersonId(v);
-              if (newResponsibleEmail && v !== undefined) {
-                  setNewResponsibleEmail('');
-              }
-            }
-          }}
-        >
-          <SelectTrigger className="h-9 w-[150px] rounded-lg border-2 border-[#7D39B4] text-sm">
-            <SelectValue placeholder={t.responsiblePerson} />
-          </SelectTrigger>
-          
-          <SelectContent>
-            {/* DÜZƏLİŞ: SelectGroup əlavə olundu */}
-            <SelectGroup> 
-              <SelectLabel>{t.registeredUsers}</SelectLabel> 
-              {registeredUsers
-                .filter(u => u.id !== currentUserId)
-                .map(user => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} ({user.department})
-                  </SelectItem>
+      
+        {/* 🟢 KRİTİK DÜZƏLİŞ 5: Məsul Şəxs Combobox (Axtarış) */}
+        <Popover open={isResponsibleSelectOpen} onOpenChange={setIsResponsibleSelectOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isResponsibleSelectOpen}
+              className={`h-9 w-[150px] rounded-lg border-2 border-[#7D39B4] text-sm justify-between ${
+                !selectedResponsiblePersonId ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
+              {selectedResponsiblePersonId
+                ? internalResponsibleUsers.find((user) => user.id === selectedResponsiblePersonId)?.name
+                : t.responsiblePerson}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[180px] p-0 rounded-xl">
+            <Command>
+              {/* ❌ XƏTA DÜZƏLİŞİ 1: Düzgün tərcümə açarından istifadə et */}
+              <CommandInput placeholder={t.searchUser as string} />
+              {/* ❌ XƏTA DÜZƏLİŞİ 2: Düzgün tərcümə açarından istifadə et */}
+              <CommandEmpty>{t.noUserFound as string}</CommandEmpty>
+              <CommandGroup>
+                {/* Daxili Məsul Şəxslər */}
+                {internalResponsibleUsers
+                  .filter(u => u.id !== currentUserId)
+                  .map((user) => (
+                  <CommandItem
+                    key={user.id}
+                    // Axtarış üçün dəyər: ad + departament/rol
+                    value={`${user.name} ${user.department || user.role}`} 
+                    // 🟢 XƏTA DÜZƏLİŞİ 3: Tipi string olaraq təyin et
+                    onSelect={(selectedSearchableValue: string) => { 
+                      const selectedUser = internalResponsibleUsers.find(u => 
+                            // Düzgün müqayisə (hərf böyüklüyünə həssas olmamaq üçün)
+                           `${u.name} ${u.department || u.role}`.toLowerCase() === selectedSearchableValue.toLowerCase()
+                      );
+                      if (selectedUser) {
+                          setSelectedResponsiblePersonId(selectedUser.id);
+                      }
+                      setIsResponsibleSelectOpen(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={`mr-2 h-4 w-4 ${
+                        selectedResponsiblePersonId === user.id ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                    {user.name} ({user.department || user.role})
+                  </CommandItem>
                 ))}
-            </SelectGroup>
-            
-            <SelectSeparator />
-            
-            <SelectItem value="new" className="text-[#7D39B4] flex items-center">
-              <Plus className="w-4 h-4 mr-2" />
-              {t.addUnregistered}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        {/* 🟢 YENİ: Məsul Şəxs Select'i SONU */}
-
-
+                
+                {/* Yeni Məsul Şəxs Əlavə Et */}
+                <CommandItem
+                  onSelect={() => {
+                    setIsResponsibleSelectOpen(false);
+                    setShowAddResponsibleDialog(true);
+                  }}
+                  className="text-[#7D39B4] hover:text-[#6B2F9E] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 mr-2 inline" /> {t.addUnregistered}
+                </CommandItem>
+                
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      
         {/* Şöbə — yalnız Qapalı seçildikdə */}
         {visibility === "private" && (
           <Select value={department} onValueChange={setDepartment}>
@@ -337,9 +375,8 @@ export function ProblemInput({
       </div>
 
 
-        
-        {/* Media preview section below the bar */}
-        {media.length > 0 && (
+      {/* Media preview section below the bar */}
+      {media.length > 0 && (
           <div className="flex flex-wrap gap-3 mt-4 px-2">
             {media.map((item, index) => (
               <div key={index} className="relative group">
@@ -369,8 +406,8 @@ export function ProblemInput({
           </div>
         )}
 
-        {/* Similar problems suggestion */}
-        {similarProblems.length > 0 && (
+      {/* Similar problems suggestion */}
+      {similarProblems.length > 0 && (
           <div className="mt-4 px-2">
             <h3 className="text-sm text-gray-600 mb-3">{t.similarProblems}</h3>
             <div className="space-y-2">
@@ -460,9 +497,8 @@ export function ProblemInput({
             </AlertDialogCancel>
             <AlertDialogAction 
               className="bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full"
-              disabled={!newResponsibleEmail.trim()} // 🟢 Trim əlavə edildi
+              disabled={!newResponsibleEmail.trim()} 
               onClick={() => {
-                // Bu 'unregistered-user' müvəqqəti id-si, handleSubmit-də email ilə əvəzlənir.
                 setSelectedResponsiblePersonId('unregistered-user'); 
                 setShowAddResponsibleDialog(false);
                 toast.success(`${newResponsibleEmail} ${t.addedAsResponsible}`);
