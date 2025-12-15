@@ -2,14 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
-// Köhnə REPO_NAME dəyərini silirik
-// const REPO_NAME = '/solvit-new/'; 
-
 export default defineConfig({
-  
-  // 🟢 KRİTİK DÜZƏLİŞ: Base path-i nisbi etmək
-  base: './', 
-  
+  // GitHub Pages üçün ən stabil variant:
+  // Repo adını burda yaz (məs: SolvIT-new)
+  base: '/SolvIT-new/',
+
   plugins: [react()],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -56,10 +53,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+
   build: {
     target: 'esnext',
-    outDir: 'dist', 
+    outDir: 'docs',       // ✅ Pages oxuduğu yer
+    emptyOutDir: true,    // ✅ köhnə faylları silsin
   },
+
   server: {
     port: 3000,
     open: true,

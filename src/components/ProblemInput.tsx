@@ -270,7 +270,7 @@ export function ProblemInput({
         {/* ✅ Prioritet: placeholder + selected label */}
         <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
           <SelectTrigger className="h-9 w-[110px] rounded-lg border-2 border-[#7D39B4] text-sm">
-            <span className={priorityLabel ? 'text-gray-900' : 'text-gray-400'}>
+            <span className={priorityLabel ? 'text-gray-900' : 'text-gray-500'}>
               {priorityLabel ?? t.priority}
             </span>
           </SelectTrigger>
@@ -285,7 +285,7 @@ export function ProblemInput({
         {/* ✅ Görünürlük: placeholder + selected label */}
         <Select value={visibility} onValueChange={(v: any) => setVisibility(v)}>
           <SelectTrigger className="h-9 w-[110px] rounded-lg border-2 border-[#7D39B4] text-sm">
-            <span className={visibilityLabel ? 'text-gray-900' : 'text-gray-400'}>
+            <span className={visibilityLabel ? 'text-gray-900' : 'text-gray-500'}>
               {visibilityLabel ?? t.privacy}
             </span>
           </SelectTrigger>
@@ -296,88 +296,67 @@ export function ProblemInput({
         </Select>
 
         {/* Responsible person (already good) */}
+        {/* Məsul Şəxs Combobox */}
         <Popover open={isResponsibleSelectOpen} onOpenChange={setIsResponsibleSelectOpen}>
-  <PopoverTrigger asChild>
-    <button
-      type="button"
-      role="combobox"
-      aria-expanded={isResponsibleSelectOpen}
-      className="
-        h-9 w-[150px]
-        rounded-lg
-        border-2 border-[#7D39B4]
-        text-sm
-        px-3
-        flex items-center justify-between
-        bg-[#F8F5FB]
-        hover:bg-[#F8F5FB]
-        focus:outline-none
-        focus:ring-0
-      "
-    >
-      <span
-        className={
-          selectedResponsiblePersonId
-            ? 'text-gray-900'
-            : 'text-gray-400'
-        }
-      >
-        {selectedResponsiblePersonId
-          ? internalResponsibleUsers.find((u) => u.id === selectedResponsiblePersonId)?.name
-          : t.responsiblePerson}
-      </span>
-
-      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-    </button>
-  </PopoverTrigger>
-
-  <PopoverContent className="w-[180px] p-0 rounded-xl">
-    <Command>
-      <CommandInput placeholder={t.searchUser as string} />
-      <CommandEmpty>{t.noUserFound as string}</CommandEmpty>
-
-      <CommandGroup>
-        {internalResponsibleUsers
-          .filter((u) => u.id !== currentUserId)
-          .map((user) => (
-            <CommandItem
-              key={user.id}
-              value={`${user.name} ${user.department || user.role}`}
-              onSelect={(val: string) => {
-                const sel = internalResponsibleUsers.find(
-                  (u) =>
-                    `${u.name} ${u.department || u.role}`.toLowerCase() ===
-                    val.toLowerCase()
-                );
-                if (sel) setSelectedResponsiblePersonId(sel.id);
-                setIsResponsibleSelectOpen(false);
-              }}
-              className="cursor-pointer"
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isResponsibleSelectOpen}
+              className={`h-9 w-[110px] rounded-lg border-2 border-[#7D39B4] text-sm justify-between ${
+                !selectedResponsiblePersonId ? 'text-gray-500' : 'text-gray-900'
+              }`}
             >
-              <Check
-                className={`mr-2 h-4 w-4 ${
-                  selectedResponsiblePersonId === user.id
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-              />
-              {user.name} ({user.department || user.role})
-            </CommandItem>
-          ))}
+              {selectedResponsiblePersonId
+                ? internalResponsibleUsers.find((user) => user.id === selectedResponsiblePersonId)?.name
+                : t.responsiblePerson}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[180px] p-0 rounded-xl">
+            <Command>
+              <CommandInput placeholder={t.searchUser as string} />
+              <CommandEmpty>{t.noUserFound as string}</CommandEmpty>
+              <CommandGroup>
+                {internalResponsibleUsers
+                  .filter((u) => u.id !== currentUserId)
+                  .map((user) => (
+                    <CommandItem
+                      key={user.id}
+                      value={`${user.name} ${user.department || user.role}`}
+                      onSelect={(selectedSearchableValue: string) => {
+                        const selectedUser = internalResponsibleUsers.find(
+                          (u) =>
+                            `${u.name} ${u.department || u.role}`.toLowerCase() ===
+                            selectedSearchableValue.toLowerCase()
+                        );
+                        if (selectedUser) setSelectedResponsiblePersonId(selectedUser.id);
+                        setIsResponsibleSelectOpen(false);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          selectedResponsiblePersonId === user.id ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                      {user.name} ({user.department || user.role})
+                    </CommandItem>
+                  ))}
 
-        <CommandItem
-          onSelect={() => {
-            setIsResponsibleSelectOpen(false);
-            setShowAddResponsibleDialog(true);
-          }}
-          className="text-[#7D39B4] hover:text-[#6B2F9E] cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-2 inline" /> {t.addUnregistered}
-        </CommandItem>
-      </CommandGroup>
-    </Command>
-  </PopoverContent>
-</Popover>
+                <CommandItem
+                  onSelect={() => {
+                    setIsResponsibleSelectOpen(false);
+                    setShowAddResponsibleDialog(true);
+                  }}
+                  className="text-[#7D39B4] hover:text-[#6B2F9E] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 mr-2 inline" /> {t.addUnregistered}
+                </CommandItem>
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
 
         {/* Department — only when private */}
