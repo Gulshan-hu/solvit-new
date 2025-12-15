@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   // GitHub Pages üçün ən stabil variant:
   // Repo adını burda yaz (məs: SolvIT-new)
-  base: '/solvit-new/',
+  base: './',
 
   plugins: [react()],
   resolve: {
