@@ -96,9 +96,16 @@ const handleSubmitRegistration = async (e: React.FormEvent) => {
     toast.success(t.verificationCodeSent);
     setStep('verify');
   } catch (err: any) {
-    setError(err.message || t.registrationError);
-    toast.error(err.message || t.registrationError);
-  } finally {
+  const rawMsg = err?.message || "";
+  const msg = rawMsg.toLowerCase();
+
+  toast.error(err?.message || t.loginError);
+
+
+  setError(rawMsg || t.registrationError);
+  toast.error(rawMsg || t.registrationError);
+}
+ finally {
     setIsLoading(false);
   }
 };
@@ -121,10 +128,18 @@ const handleSubmitLogin = async (e: React.FormEvent) => {
     toast.success(t.welcomeBack);
     onOpenChange(false);
     window.location.reload(); // State-i yeniləmək üçün
-  } catch (err: any) {
-    setError(err.message || t.loginError);
-    toast.error(err.message || t.loginError);
-  } finally {
+} catch (err: any) {
+  const msg = (err?.message || "").toLowerCase();
+
+  // allowlist hook mesajı
+  if (msg.includes("tələbələrə giriş icazəsi yoxdur") || msg.includes("students are not allowed")) {
+    toast.error("Tələbələrə giriş icazəsi yoxdur");
+    return;
+  }
+
+  toast.error(err?.message || t.registrationError);
+}
+ finally {
     setIsLoading(false);
   }
 };

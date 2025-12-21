@@ -92,6 +92,81 @@ useEffect(() => {
     }
   }, [allUsers]);
 
+  useEffect(() => {
+  const applySession = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const su = data.session?.user;
+
+    if (!su) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    setIsAuthenticated(true);
+
+    // UI-nın işləməsi üçün user state-i doldururuq (adları dəyişmirik)
+    setUser((prev) => ({
+      ...prev,
+      id: su.id,
+      email: su.email ?? prev.email,
+      name:
+        (su.user_metadata?.full_name as string) ??
+        (su.user_metadata?.name as string) ??
+        prev.name,
+      role: (su.user_metadata?.role as any) ?? prev.role,
+      customRole: (su.user_metadata?.custom_role as string) ?? prev.customRole,
+      department: (su.user_metadata?.department as string) ?? prev.department,
+      emailVerified: !!su.email_confirmed_at,
+    }));
+  };
+
+  applySession();
+
+  const { data: sub } = supabase.auth.onAuthStateChange(() => {
+    applySession();
+  });
+
+  return () => {
+    sub.subscription.unsubscribe();
+  };
+}, []);
+
+useEffect(() => {
+  const sync = async () => {
+    const { data } = await supabase.auth.getSession();
+    const su = data.session?.user;
+
+    if (!su) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    setIsAuthenticated(true);
+
+    setUser((prev) => ({
+      ...prev,
+      id: su.id,
+      email: su.email ?? prev.email,
+      name: (su.user_metadata?.full_name as string) ?? (su.user_metadata?.name as string) ?? prev.name,
+      role: (su.user_metadata?.role as any) ?? prev.role,
+      customRole: (su.user_metadata?.custom_role as string) ?? prev.customRole,
+      department: (su.user_metadata?.department as string) ?? prev.department,
+      emailVerified: !!su.email_confirmed_at,
+    }));
+  };
+
+  sync();
+
+  const { data: sub } = supabase.auth.onAuthStateChange(() => sync());
+  return () => sub.subscription.unsubscribe();
+}, []);
+
+
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
     setStoredLanguage(lang);
@@ -127,38 +202,30 @@ useEffect(() => {
     setAllUsers(updatedUsers);
 
     // Log in the new user
-    setUser(newUser);
-    localStorage.setItem("solvit_authenticated", "true");
-    localStorage.setItem("solvit_current_user", JSON.stringify(newUser));
-    setIsAuthenticated(true);
     toast.success(t.registrationSuccess);
   };
 
-  const handleLogin = (email: string, password: string) => {
-    const foundUser = allUsers.find(
-      (u) => u.email === email && u.password === password,
-    );
+  const handleLogin = async (email: string, password: string) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (foundUser) {
-      // Check email verification
-      if (foundUser.emailVerified === false) {
-        toast.error(t.emailNotVerified);
-        return;
-      }
+    if (error) throw error;
 
-      setUser(foundUser);
-      localStorage.setItem("solvit_authenticated", "true");
-      localStorage.setItem("solvit_current_user", JSON.stringify(foundUser));
-      setIsAuthenticated(true);
-      toast.success(`${t.welcomeBack}, ${foundUser.name}!`);
-    } else {
-      toast.error(t.incorrectCredentials);
-    }
-  };
+    // Burada setUser/setIsAuthenticated yazmaq məcburi deyil,
+    // çünki App.tsx-də onAuthStateChange session-u tutacaq.
+    toast.success(`${t.welcomeBack}, ${data.user.user_metadata?.full_name ?? data.user.email}!`);
+  } catch (err: any) {
+    toast.error(err.message || t.loginError);
+  }
+};
+
+
 
   const handleLogout = async () => {
   await supabase.auth.signOut();
-  localStorage.setItem("solvit_authenticated", "false"); // müvəqqəti saxla (keçid dövründə)
   setIsAuthenticated(false);
   setShowDashboard(false);
   toast.info(t.loggedOut);
