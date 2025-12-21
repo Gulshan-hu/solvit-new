@@ -142,10 +142,14 @@ const handleSubmitLogin = async (e: React.FormEvent) => {
 };
 
 const handleResendCode = async () => {
+  setError('');
+  setIsLoading(true);
+
   try {
     const email = registerEmail.trim().toLowerCase();
 
     if (!email) {
+      setError("Email tapılmadı");
       toast.error("Email tapılmadı");
       return;
     }
@@ -159,9 +163,14 @@ const handleResendCode = async () => {
 
     toast.success("Kod yenidən göndərildi");
   } catch (err: any) {
-    toast.error(err?.message || "Kod göndərilə bilmədi");
+    const msg = err?.message || "Kod göndərilə bilmədi";
+    setError(msg);
+    toast.error(msg);
+  } finally {
+    setIsLoading(false);
   }
 };
+
 
 
 // 🟢 SUPABASE: OTP Təsdiqləmə
@@ -170,15 +179,21 @@ const handleVerifyCode = async (e: React.FormEvent) => {
   setError('');
   setIsLoading(true);
 
-  const email = registerEmail.trim().toLowerCase();
+const email = registerEmail.trim().toLowerCase();
 const token = verificationCode.trim();
+
+if (!email) {
+  setError("Email tapılmadı");
+  toast.error("Email tapılmadı");
+  return;
+}
 
 if (token.length !== 6) {
   setError("Kod 6 rəqəm olmalıdır");
   toast.error("Kod 6 rəqəm olmalıdır");
-  setIsLoading(false);
   return;
 }
+
 
 
   try {
@@ -225,6 +240,7 @@ if (token.length !== 6) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md rounded-[20px]">
         <DialogHeader className="p-0">
+          <DialogTitle className="sr-only">Auth</DialogTitle>
           <div className="flex items-center text-xl font-semibold text-[#7D39B4] mb-4">
             <button
               onClick={() => handleModeChange('register')}
