@@ -42,6 +42,7 @@ useEffect(() => {
 
     const formattedProblems = (data ?? []).map((p: any) => ({
       ...p,
+      status: p.status === 'open' ? 'unsolved' : p.status,
       tags: (p.problem_tags ?? []).map((t: any) => t.tag),
       media: (p.problem_media ?? []).map((m: any) => ({ url: m.url, type: m.type })),
       taggedUsers: (p.problem_tagged_users ?? [])
@@ -253,7 +254,7 @@ useEffect(() => {
       author_id: user.id,
       author_name: user.name,
       responsible_person_id: problemData.responsiblePersonId,
-      status: 'unsolved',
+      status: 'open',
       created_at: new Date().toISOString(),
     }).select().single();  // Yeni problemi qaytar
 
@@ -326,7 +327,10 @@ const onSubmitProblem = async (
     department,     // ✅ əlavə et
     // responsiblePersonId: ... əgər ProblemInput-dan gəlmirsə, boş burax
   });
+  setShowDashboard(true);
+
 };
+
 
 
   const extractTags = (text: string): string[] => {
@@ -334,10 +338,12 @@ const onSubmitProblem = async (
     return text.match(tagPattern) || [];
   };
 
-  const handleStatusChange = async (id: string, status: Problem["status"]) => {
+const handleStatusChange = async (id: string, status: Problem["status"]) => {
+  const dbStatus = status === "unsolved" ? "open" : status;
+
   const { error } = await supabase
     .from("problems")
-    .update({ status })
+    .update({ status: dbStatus })
     .eq("id", id);
 
   if (error) {
@@ -346,8 +352,8 @@ const onSubmitProblem = async (
   }
 
   toast.success(t.statusUpdated);
-  // setProblems yazmırıq — sən artıq fetch/realtime ilə yeniləyirsən
 };
+
 
   // 🟢 YENİ FƏNDƏSİ: Logoya basanda əsas səhifəyə qayıtmaq
   const handleLogoClick = () => {
