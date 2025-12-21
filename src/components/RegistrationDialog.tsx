@@ -99,12 +99,17 @@ const handleSubmitRegistration = async (e: React.FormEvent) => {
   const rawMsg = err?.message || "";
   const msg = rawMsg.toLowerCase();
 
-  toast.error(err?.message || t.loginError);
-
+  // allowlist hook mesajı (signup üçündür)
+  if (msg.includes("tələbələrə giriş icazəsi yoxdur") || msg.includes("students are not allowed")) {
+    setError("Tələbələrə giriş icazəsi yoxdur");
+    toast.error("Tələbələrə giriş icazəsi yoxdur");
+    return;
+  }
 
   setError(rawMsg || t.registrationError);
   toast.error(rawMsg || t.registrationError);
 }
+
  finally {
     setIsLoading(false);
   }
@@ -127,22 +132,37 @@ const handleSubmitLogin = async (e: React.FormEvent) => {
 
     toast.success(t.welcomeBack);
     onOpenChange(false);
-    window.location.reload(); // State-i yeniləmək üçün
 } catch (err: any) {
-  const msg = (err?.message || "").toLowerCase();
-
-  // allowlist hook mesajı
-  if (msg.includes("tələbələrə giriş icazəsi yoxdur") || msg.includes("students are not allowed")) {
-    toast.error("Tələbələrə giriş icazəsi yoxdur");
-    return;
-  }
-
-  toast.error(err?.message || t.registrationError);
+  toast.error(err?.message || t.loginError);
 }
+
  finally {
     setIsLoading(false);
   }
 };
+
+const handleResendCode = async () => {
+  try {
+    const email = registerEmail.trim().toLowerCase();
+
+    if (!email) {
+      toast.error("Email tapılmadı");
+      return;
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+
+    if (error) throw error;
+
+    toast.success("Kod yenidən göndərildi");
+  } catch (err: any) {
+    toast.error(err?.message || "Kod göndərilə bilmədi");
+  }
+};
+
 
 // 🟢 SUPABASE: OTP Təsdiqləmə
 const handleVerifyCode = async (e: React.FormEvent) => {
@@ -150,18 +170,28 @@ const handleVerifyCode = async (e: React.FormEvent) => {
   setError('');
   setIsLoading(true);
 
+  const email = registerEmail.trim().toLowerCase();
+const token = verificationCode.trim();
+
+if (token.length !== 6) {
+  setError("Kod 6 rəqəm olmalıdır");
+  toast.error("Kod 6 rəqəm olmalıdır");
+  setIsLoading(false);
+  return;
+}
+
+
   try {
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email: registerEmail,
-      token: verificationCode,
-      type: 'signup',
-    });
+  email,
+  token,
+  type: "signup",
+});
 
     if (verifyError) throw verifyError;
 
     toast.success(t.registrationSuccess);
     onOpenChange(false);
-    window.location.reload();
   } catch (err: any) {
     setError(err.message || t.invalidVerificationCode);
     toast.error(err.message || t.invalidVerificationCode);
@@ -299,6 +329,16 @@ const handleVerifyCode = async (e: React.FormEvent) => {
             <Button disabled={isLoading} type="submit" className="w-full bg-[#7D39B4] hover:bg-[#6B2F9E] rounded-full h-12">
               {isLoading ? <Loader2 className="animate-spin" /> : t.verify}
             </Button>
+            <Button
+  type="button"
+  variant="outline"
+  onClick={handleResendCode}
+  disabled={isLoading}
+  className="w-full rounded-full h-12"
+>
+  Kodu yenidən göndər
+</Button>
+
           </form>
         )}
       </DialogContent>
