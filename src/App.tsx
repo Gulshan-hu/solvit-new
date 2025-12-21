@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
 import { LandingPage } from "./components/LandingPage";
 import { DashboardPage } from "./components/DashboardPage";
-import {
-  mockProblems,
-  currentUser,
-  Problem,
-  User,
-  MediaFile,
-  registeredUsers,
-} from "./data/mockData";
 import { toast, Toaster } from "sonner";
 import { getStoredLanguage, setStoredLanguage, Language } from "./utils/translations";
 import { getTranslation } from "./utils/translations";
+import type { Problem, User, MediaFile } from "./data/mockData";
+import { currentUser, registeredUsers } from "./data/mockData";
+import { supabase } from './utils/supabase/client';  // client.ts faylının yolu doğru olsun
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,42 +19,71 @@ function App() {
 
   const t = getTranslation(language);
 
-  useEffect(() => {
-    // Load problems from localStorage
-    const savedProblems = localStorage.getItem("solvit_problems");
-    if (savedProblems) {
-      setProblems(JSON.parse(savedProblems));
-    } else {
-      setProblems(mockProblems);
+  
+
+useEffect(() => {
+  const fetchProblems = async () => {
+    if (!allUsers || allUsers.length === 0) return;
+
+    const { data, error } = await supabase
+      .from("problems")
+      .select(`
+        *,
+        problem_tags (tag),
+        problem_media (url, type),
+        problem_tagged_users (user_id)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error(error.message);
+      return;
     }
 
-    // Load all users from localStorage
-    const savedUsers = localStorage.getItem("solvit_all_users");
-    if (savedUsers) {
-      setAllUsers(JSON.parse(savedUsers));
-    } else {
-      localStorage.setItem(
-        "solvit_all_users",
-        JSON.stringify(registeredUsers),
-      );
-    }
+    const formattedProblems = (data ?? []).map((p: any) => ({
+      ...p,
+      tags: (p.problem_tags ?? []).map((t: any) => t.tag),
+      media: (p.problem_media ?? []).map((m: any) => ({ url: m.url, type: m.type })),
+      taggedUsers: (p.problem_tagged_users ?? [])
+        .map((u: any) => allUsers.find((x) => x.id === u.user_id))
+        .filter(Boolean),
+      solution: p.solution_text
+        ? {
+            text: p.solution_text,
+            solverName: p.solver_name,
+            solverDate: new Date(p.solver_date)
+              .toLocaleDateString("az-AZ", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              })
+              .replace(/\./g, "-"),
+            media: [],
+          }
+        : undefined,
+    }));
 
-    // Check if user is authenticated
-    const authenticated = localStorage.getItem("solvit_authenticated");
-    const savedUser = localStorage.getItem("solvit_current_user");
+    setProblems(formattedProblems);
+  };
 
-    if (authenticated === "true" && savedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+  fetchProblems();
 
-  // Save problems to localStorage whenever they change
-  useEffect(() => {
-    if (problems.length > 0) {
-      localStorage.setItem("solvit_problems", JSON.stringify(problems));
-    }
-  }, [problems]);
+  const channel = supabase
+    .channel("problems_changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "problems" },
+      () => fetchProblems(),
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [allUsers]);
+
+
+
 
   // Save users to localStorage whenever they change
   useEffect(() => {
@@ -131,72 +156,132 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.setItem("solvit_authenticated", "false");
-    setIsAuthenticated(false);
-    setShowDashboard(false);
-    toast.info(t.loggedOut);
-  };
+  const handleLogout = async () => {
+  await supabase.auth.signOut();
+  localStorage.setItem("solvit_authenticated", "false"); // müvəqqəti saxla (keçid dövründə)
+  setIsAuthenticated(false);
+  setShowDashboard(false);
+  toast.info(t.loggedOut);
+};
 
-  const handleSubmitProblem = (
-    text: string,
-    media: MediaFile[],
-    taggedUsers: User[],
-    visibility: 'public' | 'private',
-    department: string | undefined,
-    priority: 'low' | 'medium' | 'high' | 'critical',
-  ) => {
-    const newProblem: Problem = {
-      id: Date.now().toString(),
-      text,
-      date: new Date()
-        .toLocaleDateString("az-AZ", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-        .replace(/\./g, "-"),
-      media,
-      status: "unsolved",
-      tags: extractTags(text),
-      taggedUsers,
-      authorId: user.id,
-      authorName: user.name,
-      visibility,
-      department,
-      priority,
-    };
 
-    setProblems([newProblem, ...problems]);
-    toast.success(t.problemSentSuccess);
+  const handleSubmitProblem = async (problemData: {
+  text: string;
+  priority: string;
+  tags: string[];
+  taggedUsers: string[];
+  media: MediaFile[];
+  responsiblePersonId?: string;
+  visibility?: "public" | "private";
+  department?: string;
+  
+}) => {
+  try {
+    // Problems cədvəlinə insert et
+    const { data: newProblem, error: insertError } = await supabase.from('problems').insert({
+      text: problemData.text,
+      priority: problemData.priority,
+      visibility: problemData.visibility ?? "public",
+      department: problemData.department ?? user.department,
+      author_id: user.id,
+      author_name: user.name,
+      responsible_person_id: problemData.responsiblePersonId,
+      status: 'unsolved',
+      created_at: new Date().toISOString(),
+    }).select().single();  // Yeni problemi qaytar
 
-    // Auto-navigate to dashboard after problem submission
-    if (!showDashboard) {
-      setShowDashboard(true);
+    if (insertError) throw insertError;
+
+    // Tags əlavə et (problem_tags cədvəlinə)
+    if (problemData.tags.length > 0) {
+      await supabase.from('problem_tags').insert(
+        problemData.tags.map(tag => ({ problem_id: newProblem.id, tag }))
+      );
     }
 
-    // Simulate email notifications to tagged users
-    if (taggedUsers.length > 0) {
-      taggedUsers.forEach((taggedUser) => {
-        console.log(
-          `📧 Email sent to ${taggedUser.email}: You were mentioned in a problem by ${user.name}`,
-        );
-        toast.info(`${t.notificationSent}: @${taggedUser.name}`);
-      });
+    // Tagged users əlavə et
+    if (problemData.taggedUsers.length > 0) {
+      await supabase.from('problem_tagged_users').insert(
+        problemData.taggedUsers.map(userId => ({ problem_id: newProblem.id, user_id: userId }))
+      );
     }
-  };
+
+// Media upload et (Storage-ə)
+for (const mediaItem of problemData.media) {
+  const actualFile = mediaItem.file; // ✅ real File burdadır
+  if (!actualFile) continue;
+
+  const fileName = `${Date.now()}_${actualFile.name}`; // Unikal ad
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("media")
+    .upload(`problems/${newProblem.id}/${fileName}`, actualFile);
+
+  if (uploadError) throw uploadError;
+
+  // URL-i problem_media-ya yaz (getPublicUrl qaytarışı fərqlidir!)
+  const { data: publicData } = supabase.storage
+    .from("media")
+    .getPublicUrl(uploadData.path);
+
+  await supabase.from("problem_media").insert({
+    problem_id: newProblem.id,
+    url: publicData.publicUrl,
+    type: actualFile.type.startsWith("image") ? "image" : "video",
+  });
+}
+
+
+    // Problems state-ini güncəllə (realtime ilə avtomatik olacaq, amma əl ilə əlavə et)
+    
+    toast.success(t.problemSubmitted);
+  } catch (err: any) {
+    toast.error(err.message || t.submitError);
+  }
+};
+const onSubmitProblem = async (
+  text: string,
+  media: MediaFile[],
+  taggedUsers: User[],
+  visibility: "public" | "private",
+  department: string | undefined,
+  priority: "low" | "medium" | "high" | "critical",
+) => {
+  const tags = extractTags(text);
+
+  await handleSubmitProblem({
+    text,
+    priority,
+    tags,
+    taggedUsers: taggedUsers.map((u) => u.id), // DB üçün id-lər
+    media,
+    visibility,     // ✅ əlavə et
+    department,     // ✅ əlavə et
+    // responsiblePersonId: ... əgər ProblemInput-dan gəlmirsə, boş burax
+  });
+};
+
 
   const extractTags = (text: string): string[] => {
     const tagPattern = /@[\wəüöğıçşƏÜÖĞIÇŞ]+/g;
     return text.match(tagPattern) || [];
   };
 
-  const handleStatusChange = (id: string, status: Problem["status"]) => {
-    setProblems(
-      problems.map((p) => (p.id === id ? { ...p, status } : p)),
-    );
-    toast.success(t.statusUpdated);
-  };
+  const handleStatusChange = async (id: string, status: Problem["status"]) => {
+  const { error } = await supabase
+    .from("problems")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+
+  toast.success(t.statusUpdated);
+  // setProblems yazmırıq — sən artıq fetch/realtime ilə yeniləyirsən
+};
+
   // 🟢 YENİ FƏNDƏSİ: Logoya basanda əsas səhifəyə qayıtmaq
   const handleLogoClick = () => {
     // 1. İstifadəçini Dashoard'dan LandingPage'ə yönləndir
@@ -207,43 +292,40 @@ function App() {
     // Lakin, biz state-ləri idarə etdiyimiz üçün yalnız setShowDashboard(false) kifayətdir.
   };
 
-  const handleSubmitSolution = (
-    id: string,
-    text: string,
-    media: MediaFile[],
-  ) => {
-    setProblems(
-      problems.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              status: "in-progress", // Automatically set to in-progress when solution submitted
-              solution: {
-                text,
-                solverName: user.name,
-                solverDate: new Date()
-                  .toLocaleDateString("az-AZ", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                  })
-                  .replace(/\./g, "-"),
-                media,
-              },
-            }
-          : p,
-      ),
-    );
+const handleSubmitSolution = async (id: string, text: string, media: MediaFile[]) => {
+  try {
+    // 1) DB-də problemi update et: status -> in-progress + solution məlumatları
+    const { error } = await supabase
+      .from("problems")
+      .update({
+        status: "in-progress",
+        solution_text: text,
+        solver_id: user.id,
+        solver_name: user.name,
+        solver_date: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    // 2) UI mesajı (eyni qalır)
     toast.success(t.solutionSentSuccess);
 
-    // Notify problem author
+    // 3) “Müəllifə mesaj getdi” simulyasiyası (eyni qalır)
     const problem = problems.find((p) => p.id === id);
     if (problem) {
       console.log(
         `📧 Email sent to problem author: ${problem.authorName} - Your problem has a new solution!`,
       );
     }
-  };
+
+    // 4) setProblems ETMİRİK
+    // Çünki sən artıq fetchProblems/realtime ilə listi yeniləyirsən.
+  } catch (err: any) {
+    toast.error(err.message || t.submitError);
+  }
+};
+
 
   const handleUpdateProfile = (updatedUser: User) => {
     // Update current user
@@ -259,10 +341,28 @@ function App() {
     toast.success(t.profileUpdated);
   };
 
-  const handleDeleteProblem = (id: string) => {
-    setProblems(problems.filter((p) => p.id !== id));
-    toast.success(t.problemDeleted);
-  };
+  const handleDeleteProblem = async (id: string) => {
+  // 1) əlaqəli cədvəllərdən sil
+  const { error: tagsErr } = await supabase.from("problem_tags").delete().eq("problem_id", id);
+  if (tagsErr) return toast.error(tagsErr.message);
+
+  const { error: taggedErr } = await supabase.from("problem_tagged_users").delete().eq("problem_id", id);
+  if (taggedErr) return toast.error(taggedErr.message);
+
+  const { error: mediaErr } = await supabase.from("problem_media").delete().eq("problem_id", id);
+  if (mediaErr) return toast.error(mediaErr.message);
+
+  // 2) əsas problemi sil
+  const { error } = await supabase.from("problems").delete().eq("id", id);
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+
+  toast.success(t.problemDeleted);
+  // setProblems yazmırıq — realtime/fetch yeniləyəcək
+};
+
 
   return (
     <>
@@ -271,7 +371,8 @@ function App() {
           user={user}
           problems={problems}
           onLogout={handleLogout}
-          onSubmitProblem={handleSubmitProblem}
+          onSubmitProblem={onSubmitProblem}
+
           onStatusChange={handleStatusChange}
           onSubmitSolution={handleSubmitSolution}
           onUpdateProfile={handleUpdateProfile}
@@ -310,7 +411,8 @@ function App() {
         <LandingPage
           onRegister={handleRegister}
           onLogin={handleLogin}
-          onSubmitProblem={handleSubmitProblem}
+          onSubmitProblem={onSubmitProblem}
+
           onNavigateToDashboard={() => setShowDashboard(true)}
           isAuthenticated={isAuthenticated}
           currentUserId={user.id}

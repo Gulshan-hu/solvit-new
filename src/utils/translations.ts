@@ -128,6 +128,12 @@ export const translations = {
     problemsSubmitted: 'Göndərilən Problemlər',
     problemsSolved: 'Həll Edilən Problemlər',
     profileUpdated: 'Profil yeniləndi',
+    problemSubmitted: "Problem göndərildi",
+    submitError: "Göndərmə xətası baş verdi",
+    loginSuccess: "Uğurla daxil oldunuz",
+    loginError: "Giriş xətası",
+     registrationError: "Qeydiyyat xətası",
+
   },
   
   ru: {
@@ -257,6 +263,11 @@ export const translations = {
     problemsSubmitted: 'Отправлено Проблем',
     problemsSolved: 'Решено Проблем',
     profileUpdated: 'Профиль обновлен',
+    problemSubmitted: "Проблема отправлена",
+    submitError: "Ошибка отправки",
+    loginSuccess: "Успешный вход",
+    loginError: "Ошибка входа",
+     registrationError: "Ошибка регистрации",
   },
   
   en: {
@@ -386,6 +397,11 @@ export const translations = {
     problemsSubmitted: 'Problems Submitted',
     problemsSolved: 'Problems Solved',
     profileUpdated: 'Profile updated',
+    problemSubmitted: "Problem submitted",
+    submitError: "Submission error occurred",
+    loginSuccess: "Successfully logged in",
+    loginError: "Login error",
+     registrationError: "Registration error",
   },
 };
 

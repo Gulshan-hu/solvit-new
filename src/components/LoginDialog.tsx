@@ -11,6 +11,9 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { getTranslation, Language } from '../utils/translations';
 import { Eye, EyeOff } from 'lucide-react';
+import { supabase } from '../utils/supabase/client';
+import { toast } from "sonner";
+
 
 interface LoginDialogProps {
   open: boolean;
@@ -31,14 +34,22 @@ export function LoginDialog({
 
   const t = getTranslation(language);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email && password) {
-      onLogin(email, password);
-      setEmail('');
-      setPassword('');
-    }
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+
+    // Uğurlu login, user-i saxla (App.tsx-də state-ə qoy)
+    onLogin(email, password);
+    toast.success(t.loginSuccess);
+  } catch (err: any) {
+    toast.error(err.message || t.loginError);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

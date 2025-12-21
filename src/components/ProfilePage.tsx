@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { User, Problem } from '../data/mockData';
 import { toast } from 'sonner';
 import { getTranslation, Language } from '../utils/translations';
+import { supabase } from '../utils/supabase/client';
 
 interface ProfilePageProps {
   user: User;

@@ -28,6 +28,9 @@ interface RegistrationDialogProps {
   onOpenChange: (open: boolean) => void;
   // Bu proplar artıq Supabase daxilində idarə olunacağı üçün istəyə görə saxlanıla və ya silinə bilər
   language: Language;
+  // ✅ LandingPage-dən gəlir — istifadə etməsən də olar
+  onRegister?: (name: string, email: string, password: string, role: string, customRole?: string) => void;
+  onLogin?: (email: string, password: string) => void;
 }
 
 export function RegistrationDialog({
@@ -62,18 +65,19 @@ export function RegistrationDialog({
     return pattern.test(email);
   };
 
-  // 🟢 SUPABASE: Qeydiyyat Funksiyası
-  const handleSubmitRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+ // 🟢 SUPABASE: Qeydiyyat Funksiyası
+const handleSubmitRegistration = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    if (!isValidEmailFormat(registerEmail)) {
-        setError(t.invalidEmailFormat);
-        return;
-    }
+  if (!isValidEmailFormat(registerEmail)) {
+    setError(t.invalidEmailFormat);
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
+  try {
     // Supabase SignUp
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: registerEmail,
@@ -81,68 +85,75 @@ export function RegistrationDialog({
       options: {
         data: {
           full_name: name,
-          role: role === 'other' ? customRole : role,
+          role: role,  // Role-i metadata-ya əlavə et
+          custom_role: role === 'other' ? customRole : null,  // Custom role yalnız 'other' olarsa
         },
       },
     });
 
+    if (signUpError) throw signUpError;
+
+    toast.success(t.verificationCodeSent);
+    setStep('verify');
+  } catch (err: any) {
+    setError(err.message || t.registrationError);
+    toast.error(err.message || t.registrationError);
+  } finally {
     setIsLoading(false);
+  }
+};
 
-    if (signUpError) {
-      toast.error(signUpError.message);
-    } else {
-      toast.success(t.verificationCodeSent);
-      setStep('verify');
-    }
-  };
+// 🟢 SUPABASE: Giriş Funksiyası
+const handleSubmitLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-  // 🟢 SUPABASE: Giriş Funksiyası
-  const handleSubmitLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    setIsLoading(true);
+  setIsLoading(true);
 
+  try {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     });
 
+    if (signInError) throw signInError;
+
+    toast.success(t.welcomeBack);
+    onOpenChange(false);
+    window.location.reload(); // State-i yeniləmək üçün
+  } catch (err: any) {
+    setError(err.message || t.loginError);
+    toast.error(err.message || t.loginError);
+  } finally {
     setIsLoading(false);
+  }
+};
 
-    if (signInError) {
-      toast.error(signInError.message);
-    } else {
-      toast.success(t.welcomeBack);
-      onOpenChange(false);
-      window.location.reload(); // State-i yeniləmək üçün
-    }
-  };
+// 🟢 SUPABASE: OTP Təsdiqləmə
+const handleVerifyCode = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-  // 🟢 SUPABASE: OTP Təsdiqləmə
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
+  try {
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
       email: registerEmail,
       token: verificationCode,
       type: 'signup',
     });
 
-    setIsLoading(true);
+    if (verifyError) throw verifyError;
 
-    if (verifyError) {
-      setError(t.invalidVerificationCode);
-      setIsLoading(false);
-    } else {
-      toast.success(t.registrationSuccess);
-      onOpenChange(false);
-      window.location.reload();
-    }
-  };
-
+    toast.success(t.registrationSuccess);
+    onOpenChange(false);
+    window.location.reload();
+  } catch (err: any) {
+    setError(err.message || t.invalidVerificationCode);
+    toast.error(err.message || t.invalidVerificationCode);
+  } finally {
+    setIsLoading(false);  // Düzəliş: İkinci setIsLoading(false) olmalı idi
+  }
+};
   const getDescription = () => {
     if (step === 'verify') return t.enterVerificationCode;
     if (currentMode === 'register') return t.registerToSubmit;

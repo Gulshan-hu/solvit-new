@@ -14,6 +14,8 @@ export interface User {
 export interface MediaFile {
   url: string;
   type: 'image' | 'video';
+  file?: File;   // ✅ əlavə et (upload üçün)
+  name?: string; // ✅ əlavə et (fallback üçün)
 }
 
 export interface Problem {

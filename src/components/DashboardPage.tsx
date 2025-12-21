@@ -6,6 +6,7 @@ import { ProfilePage } from './ProfilePage';
 import { Problem, User } from '../data/mockData';
 import { getTranslation, Language } from '../utils/translations';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { supabase } from '../utils/supabase/client';
 
 interface DashboardPageProps {
   user: User;

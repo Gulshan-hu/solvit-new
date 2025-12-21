@@ -21,6 +21,7 @@ import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { registeredUsers, mockProblems, User, MediaFile } from '../data/mockData';
 import { getTranslation, Language } from '../utils/translations';
+import { supabase } from '../utils/supabase/client';
 
 interface ProblemInputProps {
   onSubmit: (
@@ -144,8 +145,11 @@ export function ProblemInput({
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const mediaType: any = file.type.startsWith('video/') ? 'video' : 'image';
-        const item: MediaFile = { url: reader.result as string, type: mediaType } as MediaFile;
+        const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+        const item: MediaFile = { url: reader.result as string,
+           type: mediaType,
+           file, 
+           name: file.name };
 
         // ✅ stale state fix
         setMedia((prev) => [...prev, item]);

@@ -19,6 +19,7 @@ import { Badge } from './ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Problem, MediaFile } from '../data/mockData';
 import { getTranslation, Language } from '../utils/translations';
+import { supabase } from '../utils/supabase/client';
 
 interface ProblemCardProps {
   problem: Problem;

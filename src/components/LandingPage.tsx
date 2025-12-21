@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { supabase } from '../utils/supabase/client';
 
 interface LandingPageProps {
   onRegister: (name: string, email: string, password: string, role: string, customRole?: string) => void;
