@@ -19,9 +19,6 @@ function App() {
 
   const t = getTranslation(language);
 
-  
-
-useEffect(() => {
   const fetchProblems = async () => {
     if (!allUsers || allUsers.length === 0) return;
 
@@ -42,6 +39,8 @@ useEffect(() => {
 
     const formattedProblems = (data ?? []).map((p: any) => ({
       ...p,
+      authorId: p.author_id,
+      authorName: p.author_name,
       status: p.status === 'open' ? 'unsolved' : p.status,
       tags: (p.problem_tags ?? []).map((t: any) => t.tag),
       media: (p.problem_media ?? []).map((m: any) => ({ url: m.url, type: m.type })),
@@ -66,6 +65,9 @@ useEffect(() => {
 
     setProblems(formattedProblems);
   };
+  
+
+useEffect(() => {
 
   fetchProblems();
 
@@ -273,6 +275,8 @@ for (const mediaItem of problemData.media) {
     // Problems state-ini güncəllə (realtime ilə avtomatik olacaq, amma əl ilə əlavə et)
     
     toast.success(t.problemSubmitted);
+    setShowDashboard(true);
+
   } catch (err: any) {
     toast.error(err.message || t.submitError);
   }
@@ -297,6 +301,8 @@ const onSubmitProblem = async (
     department,     // ✅ əlavə et
     // responsiblePersonId: ... əgər ProblemInput-dan gəlmirsə, boş burax
   });
+
+  await fetchProblems();
   setShowDashboard(true);
 
 };
@@ -322,7 +328,10 @@ const handleStatusChange = async (id: string, status: Problem["status"]) => {
   }
 
   toast.success(t.statusUpdated);
+  await fetchProblems();
+
 };
+
 
 
   // 🟢 YENİ FƏNDƏSİ: Logoya basanda əsas səhifəyə qayıtmaq
@@ -361,6 +370,8 @@ const handleSubmitSolution = async (id: string, text: string, media: MediaFile[]
         `📧 Email sent to problem author: ${problem.authorName} - Your problem has a new solution!`,
       );
     }
+    await fetchProblems();
+
 
     // 4) setProblems ETMİRİK
     // Çünki sən artıq fetchProblems/realtime ilə listi yeniləyirsən.
@@ -382,6 +393,7 @@ const handleSubmitSolution = async (id: string, text: string, media: MediaFile[]
     setAllUsers(updatedUsers);
 
     toast.success(t.profileUpdated);
+    
   };
 
   const handleDeleteProblem = async (id: string) => {
