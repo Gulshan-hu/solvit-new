@@ -137,36 +137,6 @@ useEffect(() => {
   };
 }, []);
 
-useEffect(() => {
-  const sync = async () => {
-    const { data } = await supabase.auth.getSession();
-    const su = data.session?.user;
-
-    if (!su) {
-      setIsAuthenticated(false);
-      return;
-    }
-
-    setIsAuthenticated(true);
-
-    setUser((prev) => ({
-      ...prev,
-      id: su.id,
-      email: su.email ?? prev.email,
-      name: (su.user_metadata?.full_name as string) ?? (su.user_metadata?.name as string) ?? prev.name,
-      role: (su.user_metadata?.role as any) ?? prev.role,
-      customRole: (su.user_metadata?.custom_role as string) ?? prev.customRole,
-      department: (su.user_metadata?.department as string) ?? prev.department,
-      emailVerified: !!su.email_confirmed_at,
-    }));
-  };
-
-  sync();
-
-  const { data: sub } = supabase.auth.onAuthStateChange(() => sync());
-  return () => sub.subscription.unsubscribe();
-}, []);
-
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
