@@ -198,8 +198,25 @@ export function ProblemInput({
     const finalVisibility = visibility ?? 'public';
     const finalPriority = priority ?? 'medium';
 
+    
+let finalText = text;
+
+if (selectedResponsiblePersonId) {
+  const responsibleUser = internalResponsibleUsers.find(
+    (u) => u.id === selectedResponsiblePersonId
+  );
+
+  if (responsibleUser?.name) {
+    // Sonda artıq @ varsa iki dəfə yazmasın
+    const tag = `@${responsibleUser.name}`;
+    finalText = text.includes(tag) ? text : `${text} ${tag}`;
+  }
+}
+
+
+
     onSubmit(
-      text,
+      finalText,
       media,
       finalTaggedUsers,
       finalVisibility,

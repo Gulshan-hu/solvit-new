@@ -233,43 +233,69 @@ useEffect(() => {
     if (insertError) throw insertError;
 
     // Tags əlavə et (problem_tags cədvəlinə)
-    if (problemData.tags.length > 0) {
-      await supabase.from('problem_tags').insert(
-        problemData.tags.map(tag => ({ problem_id: newProblem.id, tag }))
-      );
-    }
+  if (problemData.tags.length > 0) {
+  const { error: tagsErr } = await supabase
+    .from("problem_tags")
+    .insert(problemData.tags.map((tag) => ({
+      problem_id: newProblem.id,
+      tag,
+    })));
+
+  if (tagsErr) throw tagsErr;
+}
+
 
     // Tagged users əlavə et
     if (problemData.taggedUsers.length > 0) {
-      await supabase.from('problem_tagged_users').insert(
-        problemData.taggedUsers.map(userId => ({ problem_id: newProblem.id, user_id: userId }))
-      );
-    }
+  const { error: taggedUsersErr } = await supabase
+    .from("problem_tagged_users")
+    .insert(problemData.taggedUsers.map((userId) => ({
+      problem_id: newProblem.id,
+      user_id: userId,
+    })));
+
+  if (taggedUsersErr) throw taggedUsersErr;
+}
+
 
 // Media upload et (Storage-ə)
 for (const mediaItem of problemData.media) {
-  const actualFile = mediaItem.file; // ✅ real File burdadır
+  const actualFile = (mediaItem as any).file as File | undefined;
   if (!actualFile) continue;
 
-  const fileName = `${Date.now()}_${actualFile.name}`; // Unikal ad
+  // Fayl uzantısı
+  const ext = actualFile.name.split(".").pop()?.toLowerCase() || "bin";
+
+  // ✅ SAFE filename: boşluq/kiril yoxdur
+  const safeFileName = `${Date.now()}_${crypto.randomUUID()}.${ext}`;
+
+  const filePath = `problems/${newProblem.id}/${safeFileName}`;
 
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from("media")
-    .upload(`problems/${newProblem.id}/${fileName}`, actualFile);
+    .upload(filePath, actualFile, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: actualFile.type,
+    });
 
   if (uploadError) throw uploadError;
 
-  // URL-i problem_media-ya yaz (getPublicUrl qaytarışı fərqlidir!)
+  // Public URL götür
   const { data: publicData } = supabase.storage
     .from("media")
     .getPublicUrl(uploadData.path);
 
-  await supabase.from("problem_media").insert({
-    problem_id: newProblem.id,
-    url: publicData.publicUrl,
-    type: actualFile.type.startsWith("image") ? "image" : "video",
-  });
+const { error: mediaInsertError } = await supabase.from("problem_media").insert({
+  problem_id: newProblem.id,
+  url: publicData.publicUrl,
+  type: actualFile.type.startsWith("image") ? "image" : "video",
+});
+
+if (mediaInsertError) throw mediaInsertError;
+
 }
+
 
 
     // Problems state-ini güncəllə (realtime ilə avtomatik olacaq, amma əl ilə əlavə et)
@@ -415,6 +441,8 @@ const handleSubmitSolution = async (id: string, text: string, media: MediaFile[]
   }
 
   toast.success(t.problemDeleted);
+  await fetchProblems();
+
   // setProblems yazmırıq — realtime/fetch yeniləyəcək
 };
 
